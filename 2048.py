@@ -1,4 +1,5 @@
 import random
+from copy import deepcopy
 
 
 class Board:
@@ -7,8 +8,8 @@ class Board:
     """
     def __init__(self):
         self.board = [[0]*4 for _ in range(4)]
-        self.spawn_tile()
-        self.spawn_tile()
+        self.spawn_tile(value=2)
+        self.spawn_tile(value=2)
         self.game_over = False
         self.score = 0
 
@@ -19,8 +20,9 @@ class Board:
         """
         for row in self.board:
             print(row)
+        print()
 
-    def spawn_tile(self, value=2):
+    def spawn_tile(self, value=random.choices(population=[2, 4], weights=[.9, .1])[0]):
         """
         Spawns a new tile on the board
         :return:
@@ -28,6 +30,21 @@ class Board:
         empty_tiles = self.empty_tiles()
         row, col = random.choice(empty_tiles)
         self.board[row][col] = value
+
+    def validate_move(self, direction):
+        """
+        Ensures that a move is possible
+        :param direction:
+        :return: boolean
+        """
+
+        # If the player picks a direction, and nothing happens, then that move isn't valid
+        board_copy = deepcopy(self.board)
+        self.make_move(direction=direction)
+        if self.board == board_copy:
+            return False
+
+        return True
 
     def make_move(self, direction):
         """
@@ -59,6 +76,7 @@ class Board:
 
         # Iterate through columns
         for j in range(4):
+            merged = False
 
             # Current tile
             for i in range(1, 4):
@@ -77,10 +95,12 @@ class Board:
                     elif self.board[k][j] != value:
                         break
 
-                    # Merge
-                    else:
+                    # Merge (can only be done once per column)
+                    elif not merged:
+                        merged = True
                         self.board[k][j] = value*2
                         self.board[k+1][j] = 0
+                        self.score += value*2
                         break
 
     def move_right(self):
@@ -89,7 +109,7 @@ class Board:
         :return:
         """
         for row in self.board:
-
+            merged = False
             # Current tile
             for j in range(2, -1, -1):
 
@@ -108,9 +128,11 @@ class Board:
                         break
 
                     # Merge
-                    else:
+                    elif not merged:
+                        merged = True
                         row[k] = value*2
                         row[k-1] = 0
+                        self.score += value*2
                         break
 
     def move_down(self):
@@ -120,6 +142,7 @@ class Board:
         """
         # Iterate through columns
         for j in range(4):
+            merged = False
 
             # Current tile
             for i in range(2, -1, -1):
@@ -141,9 +164,11 @@ class Board:
                         break
 
                     # Merge
-                    else:
+                    elif not merged:
+                        merged = True
                         self.board[k][j] = value*2
                         self.board[k-1][j] = 0
+                        self.score += value*2
                         break
 
     def move_left(self):
@@ -152,6 +177,7 @@ class Board:
         :return:
         """
         for row in self.board:
+            merged = False
 
             # Current Tile
             for j in range(1, 4):
@@ -171,20 +197,12 @@ class Board:
                         break
 
                     # Merge
-                    else:
-                        print('yo')
+                    elif not merged:
+                        merged = True
                         row[k] = value*2
                         row[k+1] = 0
+                        self.score += value*2
                         break
-
-    def validate_move(self, direction):
-        """
-        Ensures that a move is possible
-        :param direction:
-        :return: boolean
-        """
-
-        return True
 
     def empty_tiles(self):
         """
@@ -208,6 +226,17 @@ class Board:
             self.game_over = False
             return
 
+        directions = [1, 2, 3, 4]
+        board_copy = deepcopy(self.board)
+        for direction in directions:
+            if self.validate_move(direction=direction):
+                self.game_over = False
+                self.board = board_copy
+                return
+
+        self.game_over = True
+        return
+
 
 class Player:
     """
@@ -221,7 +250,7 @@ class Player:
         Would you like to move up (1), right (2), down (3), or left (4)?
         :return:
         """
-        direction_choice = int(input("What direction would you like to move?"))
+        direction_choice = int(input("Which direction would you like to move?"))
 
         return direction_choice
 
@@ -251,9 +280,11 @@ def play_game():
             print(f'{move_choice} is an invalid choice. Choose again!')
             move_choice = player.choose_move()
 
-        board.make_move(direction=move_choice)
         board.spawn_tile()
         board.check_game_state()
+
+    board.print_board()
+    print(f'GAME OVER. YOUR SCORE IS {board.score}')
 
 
 def main():
