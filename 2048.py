@@ -226,16 +226,91 @@ class Board:
             self.game_over = False
             return
 
-        directions = [1, 2, 3, 4]
-        board_copy = deepcopy(self.board)
-        for direction in directions:
-            if self.validate_move(direction=direction):
-                self.game_over = False
-                self.board = board_copy
-                return
+        if self.current_valid_moves():
+            self.game_over = False
+            return
 
         self.game_over = True
         return
+
+    def copy(self):
+        """
+        Creates a copy of the current board
+        :return: instance of Board
+        """
+        old_board = deepcopy(self.board)
+        current_score = self.score
+        new_board = Board()
+
+        # Override init function
+        new_board.set_board(board=old_board)
+        new_board.set_score(score=current_score)
+        return new_board
+
+    def successors(self):
+        """
+        Returns all the successors of the current board
+        :return:
+        """
+        directions = [1, 2, 3, 4]
+        for direction in directions:
+            new_board = self.copy()
+            if new_board.validate_move(direction=direction):
+                yield (direction, new_board)
+
+    def set_board(self, board):
+        """
+        Sets the current board
+        :param board:
+        :return:
+        """
+        self.board = board
+
+    def set_score(self, score):
+        """
+        Sets the score of the board (used for successors)
+        :param score: int
+        :return:
+        """
+        self.score = score
+
+    def play(self, player):
+        """
+        Controls the game with a human player
+        :param player: Player instance
+        :return:
+        """
+        while not self.game_over:
+            self.print_board()
+
+            move_choice = player.choose_move()
+            while not self.validate_move(direction=move_choice):
+                print(f'{move_choice} is an invalid choice. Choose again!')
+                move_choice = player.choose_move()
+            self.spawn_tile()
+            self.check_game_state()
+        self.print_board()
+        print(f'GAME OVER. YOUR SCORE IS {self.score}')
+
+    def current_valid_moves(self):
+        """
+        Returns all valid moves on the current board
+        :return:
+        """
+        directions = [1, 2, 3, 4]
+        valid_directions = []
+
+        # Create mock board and try all moves
+        # If a move doesn't change the current board, it is not a valid move
+
+        for direction in directions:
+            new_board = self.copy()
+            new_board.make_move(direction=direction)
+
+            if self.board != new_board.board:
+                valid_directions.append(direction)
+
+        return valid_directions
 
 
 class Player:
@@ -255,40 +330,62 @@ class Player:
         return direction_choice
 
 
-def create_board():
-    return Board()
-
-
-def create_player():
-    return Player()
-
-
-def play_game():
+class Agent:
     """
-    Controls the game loop
+
+    """
+    def __init__(self):
+        pass
+
+    def choose_direction(self, board):
+        """
+        The agent decides what move to make given the current game status
+        :param board: instance of Board
+        :return: 1, 2, 3, or 4
+        """
+        valid_moves = self.get_valid_moves(board=board)
+
+        return self.choose_random_move(valid_moves=valid_moves)
+
+    def determine_best_move(self, board):
+        pass
+
+    def choose_random_move(self, valid_moves):
+        return random.choice(valid_moves)
+
+    def get_valid_moves(self, board):
+        """
+        Determines what moves are valid on the current board and returns them in a tuple
+        :param board:
+        :return:
+        """
+        return board.current_valid_moves()
+
+
+def play2048():
+    """
+    AI Agent plays 2048
     :return:
     """
-    board = create_board()
-    player = create_player()
+    game = Board()
+    agent = Agent()
 
-    print(f'STARTING GAME\n')
-    while not board.game_over:
-        board.print_board()
+    while not game.game_over:
+        game.print_board()
+        direction = agent.choose_direction(board=game)
+        print(direction)
+        game.make_move(direction=direction)
 
-        move_choice = player.choose_move()
-        while not board.validate_move(direction=move_choice):
-            print(f'{move_choice} is an invalid choice. Choose again!')
-            move_choice = player.choose_move()
+        game.spawn_tile()
+        game.check_game_state()
 
-        board.spawn_tile()
-        board.check_game_state()
-
-    board.print_board()
-    print(f'GAME OVER. YOUR SCORE IS {board.score}')
+    print('\n\nGAME OVER')
+    game.print_board()
+    print(f'SCORE = {game.score}')
 
 
 def main():
-    play_game()
+    play2048()
 
 
 if __name__ == '__main__':
